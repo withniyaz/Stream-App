@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:stream_app/components/NavigationBarItem/navigation_item.dart';
 import 'package:stream_app/constants/color_constants.dart';
-import 'package:stream_app/constants/style_constants.dart';
-import 'package:stream_app/views/app/discover/discover_screen.dart';
 import 'package:stream_app/views/app/home/home_screen.dart';
 import 'package:stream_app/views/app/profile/profile_screen.dart';
 
@@ -14,13 +12,13 @@ class HomeNavigation extends StatefulWidget {
 }
 
 class _HomeNavigationState extends State<HomeNavigation> {
-  int currentIndex = 1;
+  int currentIndex = 0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: currentIndex,
-        children: [HomeScreen(), DiscoverScreen(), ProfileScreen()],
+        children: [const HomeScreen(), ProfileScreen()],
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: kPrimaryColor,
@@ -40,7 +38,6 @@ class _HomeNavigationState extends State<HomeNavigation> {
             icon: 'assets/svg/home.svg',
             title: '',
           ),
-          kNavigationItem(icon: 'assets/svg/discover.svg', title: ''),
           kNavigationItem(icon: 'assets/svg/profile.svg', title: ''),
         ],
       ),

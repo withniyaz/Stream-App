@@ -1,4 +1,4 @@
-package com.example.stream_app
+package com.backb.stream
 
 import io.flutter.embedding.android.FlutterActivity
 
