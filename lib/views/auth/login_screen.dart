@@ -1,98 +1,71 @@
 import 'dart:convert';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
+import 'package:stream_app/components/Snackbars/popup_snackbar.dart';
 import 'package:stream_app/constants/color_constants.dart';
 import 'package:stream_app/constants/style_constants.dart';
 import 'package:http/http.dart' as http;
-
-GoogleSignIn _googleSignIn = GoogleSignIn(
-  // Optional clientId
-  // clientId: '479882132969-9i9aqik3jfjd7qhci1nqf0bm2g71rm1u.apps.googleusercontent.com',
-  scopes: <String>[
-    'email',
-    'https://www.googleapis.com/auth/contacts.readonly',
-  ],
-);
+import 'package:stream_app/models/stream/user_model.dart' as user_model;
+import 'package:stream_app/providers/user_provider.dart';
+import 'package:stream_app/services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  GoogleSignInAccount? _currentUser;
-  String _contactText = '';
+  GoogleSignIn? googleSignIn = GoogleSignIn();
+  final storage = const FlutterSecureStorage();
+  final ApiService _apiProvider = ApiService();
+  // States
+  bool isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
-      setState(() {
-        _currentUser = account;
-      });
-      if (_currentUser != null) {
-        _handleGetContact(_currentUser!);
-      }
-    });
-    _googleSignIn.signInSilently();
-  }
-
-  Future<void> _handleGetContact(GoogleSignInAccount user) async {
+  Future signInWithGoogle() async {
+    String? userId;
     setState(() {
-      _contactText = 'Loading contact info...';
+      isLoading = true;
     });
-    final http.Response response = await http.get(
-      Uri.parse('https://people.googleapis.com/v1/people/me/connections'
-          '?requestMask.includeField=person.names'),
-      headers: await user.authHeaders,
+    GoogleSignInAccount? googleSignInAccount = await googleSignIn?.signIn();
+
+    GoogleSignInAuthentication? googleSignInAuthentication =
+        await googleSignInAccount?.authentication;
+
+    AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleSignInAuthentication?.accessToken,
+      idToken: googleSignInAuthentication?.idToken,
     );
-    if (response.statusCode != 200) {
+    UserCredential authResult =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+    User? user = authResult.user;
+    if (user != null) {
+      userId = await user.getIdToken();
+    }
+    final http.Response res =
+        await _apiProvider.post('/auth/google', {"googleAuthToken": userId});
+    dynamic data = jsonDecode(res.body);
+    if (res.statusCode == 201) {
+      user_model.User usermodel =
+          user_model.User.fromJson(data["data"]["user"]);
+      await storage.write(key: 'token', value: data['data']['token']);
+      if (!mounted) return;
+      Provider.of<UserProvider>(context, listen: false).updateUser(usermodel);
       setState(() {
-        _contactText = 'People API gave a ${response.statusCode} '
-            'response. Check logs for details.';
+        isLoading = false;
       });
-      print('People API ${response.statusCode} response: ${response.body}');
-      return;
     }
-    final Map<String, dynamic> data =
-        json.decode(response.body) as Map<String, dynamic>;
-    final String? namedContact = _pickFirstNamedContact(data);
-    setState(() {
-      if (namedContact != null) {
-        _contactText = 'I see you know $namedContact!';
-      } else {
-        _contactText = 'No contacts to display.';
-      }
-    });
-  }
-
-  String? _pickFirstNamedContact(Map<String, dynamic> data) {
-    final List<dynamic>? connections = data['connections'] as List<dynamic>?;
-    final Map<String, dynamic>? contact = connections?.firstWhere(
-      (dynamic contact) => contact['names'] != null,
-      orElse: () => null,
-    ) as Map<String, dynamic>?;
-    if (contact != null) {
-      final Map<String, dynamic>? name = contact['names'].firstWhere(
-        (dynamic name) => name['displayName'] != null,
-        orElse: () => null,
-      ) as Map<String, dynamic>?;
-      if (name != null) {
-        return name['displayName'] as String?;
-      }
-    }
-    return null;
-  }
-
-  Future<void> _handleSignIn() async {
-    try {
-      await _googleSignIn.signIn();
-    } catch (error) {
-      print(error);
+    if (user == null || res.statusCode != 201) {
+      googleSignIn?.disconnect();
+      showSnackBar(message: 'Something went wrong', context: context);
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -100,7 +73,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kPrimaryColor,
-      body: SafeArea(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+              image: AssetImage('assets/images/bg.png'), fit: BoxFit.cover),
+        ),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -125,16 +102,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 10,
               ),
               TextButton.icon(
-                onPressed: _handleSignIn,
+                onPressed: signInWithGoogle,
                 icon: SvgPicture.asset(
                   'assets/svg/google.svg',
                   height: 17,
                   width: 17,
                 ),
-                label: Text(
-                  'Google Sign In',
-                  style: kBodyTitleR.copyWith(color: kSecondaryColor),
-                ),
+                label: isLoading
+                    ? Text(
+                        'Signing with Google ....',
+                        style: kBodyTitleR.copyWith(color: kSecondaryColor),
+                      )
+                    : Text(
+                        'Google Sign In',
+                        style: kBodyTitleR.copyWith(color: kSecondaryColor),
+                      ),
               )
             ],
           ),

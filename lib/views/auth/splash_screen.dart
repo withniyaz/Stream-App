@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:provider/provider.dart';
 import 'package:stream_app/constants/color_constants.dart';
 import 'package:stream_app/constants/style_constants.dart';
+import 'package:stream_app/providers/user_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -11,14 +14,27 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final storage = const FlutterSecureStorage();
   //Function
   Future<Timer> startSplash() async {
     // Start Splash Timer
     var duration = const Duration(seconds: 4);
     return Timer(
       duration,
-      () => Navigator.pushNamedAndRemoveUntil(context, 'Home', (_) => false),
+      checkSession,
     );
+  }
+
+  // Check Session Token and Redirect
+  Future checkSession() async {
+    String? token = await storage.read(key: "token");
+    if (token != null) {
+      if (!mounted) return;
+      Provider.of<UserProvider>(context, listen: false).getSession();
+    } else {
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, 'Login', (_) => false);
+    }
   }
 
   @override

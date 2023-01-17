@@ -1,11 +1,11 @@
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart';
 import 'package:stream_app/components/Buttons/solid_button.dart';
 import 'package:stream_app/components/InputField/textinput_field.dart';
-import 'package:stream_app/components/Snackbars/popup_snackbar.dart';
 import 'package:stream_app/constants/color_constants.dart';
 import 'package:stream_app/constants/style_constants.dart';
 import 'package:stream_app/constants/validator_constants.dart';
@@ -14,7 +14,7 @@ import 'package:stream_app/services/api_service.dart';
 
 Widget liveStreamCard(Stream stream, BuildContext context) {
   // Initializations and Instances
-  final ApiService _apiProvider = ApiService();
+  final ApiService apiProvider = ApiService();
   bool isLoading = false;
   String? errorMessage;
   return GestureDetector(
@@ -27,13 +27,13 @@ Widget liveStreamCard(Stream stream, BuildContext context) {
                 TextEditingController();
             GlobalKey<FormState> formkey = GlobalKey<FormState>();
 
-            return StatefulBuilder(builder: (_, modalState) {
+            return StatefulBuilder(builder: (_, StateSetter modalState) {
               // Verify stream
               Future<void> verifyStream() async {
                 modalState(() {
                   isLoading = true;
                 });
-                final Response res = await _apiProvider.post(
+                final Response res = await apiProvider.post(
                     '/stream/verify?stream=${stream.stream}&pin=${streamPasswordController.text.trim()}',
                     {});
                 Map<String, dynamic> data = jsonDecode(res.body);
@@ -155,7 +155,9 @@ Widget liveStreamCard(Stream stream, BuildContext context) {
                   decoration: BoxDecoration(
                     image: DecorationImage(
                       fit: BoxFit.cover,
-                      image: NetworkImage('${stream.thumbnail?.file}'),
+                      image: CachedNetworkImageProvider(
+                        '${stream.thumbnail?.file}',
+                      ),
                     ),
                     gradient: LinearGradient(
                         begin: Alignment.topCenter,
@@ -204,7 +206,7 @@ Widget liveStreamCard(Stream stream, BuildContext context) {
                       height: 5,
                     ),
                     Text(
-                      '25K Follower',
+                      '${stream.user?.profile?.email}',
                       style: kSmallTitleR.copyWith(color: kWhite),
                     ),
                     const SizedBox(
@@ -214,14 +216,14 @@ Widget liveStreamCard(Stream stream, BuildContext context) {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Edward Younds .',
+                          '${stream.user?.profile?.name}',
                           style: kSmallTitleR.copyWith(color: kWhite),
                         ),
                         Row(
                           children: [
                             SvgPicture.asset('assets/svg/watch.svg'),
                             Text(
-                              '20 Watching',
+                              ' ${stream.count} Watching',
                               style: kSmallTitleR.copyWith(color: kWhite),
                             )
                           ],

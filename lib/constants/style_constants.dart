@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 
-const String kFontFamily = 'SF Pro Display';
-
-// FONT FAMILY
-const kFamilyName = 'Outfit';
+const String kFamilyName = 'Quicksand';
 
 //FONT WEIGHT
 const kExtraLight = FontWeight.w200;
 const kLight = FontWeight.w300;
-const kRegular = FontWeight.w400;
-const kMedium = FontWeight.w500;
+const kRegular = FontWeight.w600;
+const kMedium = FontWeight.w700;
 const kSemiBold = FontWeight.w600;
 const kBold = FontWeight.w700;
 const kExtraBold = FontWeight.w800;
@@ -22,11 +19,11 @@ const double kShort = -1;
 //FONT SIZE COMMON
 const double kDisplay = 28;
 const double kLarge = 24;
-const double kHeading = 20;
-const double kSubHeading = 18;
-const double kBody = 16;
-const double kSize14 = 14;
-const double kSize12 = 12;
+const double kHeading = 22;
+const double kSubHeading = 20;
+const double kBody = 18;
+const double kSize14 = 16;
+const double kSize12 = 14;
 
 //* DISPLAY TITLES
 

@@ -2,13 +2,16 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:stream_app/components/Buttons/solid_button.dart';
 import 'package:stream_app/components/InputField/textinput_field.dart';
 import 'package:http/http.dart' as http;
+import 'package:stream_app/components/LiveCard/live_card.dart';
 import 'package:stream_app/components/LiveCard/livestream_card.dart';
 import 'package:stream_app/components/Snackbars/popup_snackbar.dart';
 import 'package:stream_app/components/zeroState.dart';
@@ -29,9 +32,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   // Initializations and Instances
+  FlutterSecureStorage storage = const FlutterSecureStorage();
   final ApiService _apiProvider = ApiService();
   // States
   List<String> category = ["Trending", "Category", "Latest"];
+  List<Stream> mystream = [];
   List<Stream> stream = [];
   String activeCategory = "Trending";
 
@@ -50,7 +55,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (res.statusCode == 200) {
       Map<String, dynamic> data = jsonDecode(res.body);
       setState(() {
-        stream = List<Stream>.from(data["data"].map((x) => Stream.fromJson(x)));
+        mystream = List<Stream>.from(
+            data["data"]["mystream"].map((x) => Stream.fromJson(x)));
+        stream = List<Stream>.from(
+            data["data"]["stream"].map((x) => Stream.fromJson(x)));
       });
     }
   }
@@ -73,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: kPrimaryDarkColor,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
@@ -136,37 +145,81 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(
+                  height: 10,
+                ),
+                Visibility(
+                  visible: mystream.isNotEmpty,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 0, vertical: 20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 20.0),
+                          child: Text(
+                            'My Stream',
+                            style: kHeadTitleM.copyWith(color: kWhite),
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 15,
+                        ),
+                        CarouselSlider(
+                          items: mystream
+                              .map((e) => Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8.0),
+                                    child: liveCard(e, context),
+                                  ))
+                              .toList(),
+                          options: CarouselOptions(
+                            height: 200.0,
+                            enlargeCenterPage: false,
+                            autoPlay: true,
+                            aspectRatio: 16 / 9,
+                            autoPlayCurve: Curves.fastOutSlowIn,
+                            enableInfiniteScroll: mystream.length > 1 && true,
+                            autoPlayAnimationDuration:
+                                const Duration(milliseconds: 800),
+                            viewportFraction: 0.9,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: category
-                            .map((e) => categoryButton(
-                                e, activeCategory, toggleCategory))
-                            .toList(),
-                      )
+                        children: [
+                          Row(
+                            children: category
+                                .map((e) => categoryButton(
+                                    e, activeCategory, toggleCategory))
+                                .toList(),
+                          )
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 15,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 15.0),
+                        child: Text(
+                          '$activeCategory Streams',
+                          style: kHeadTitleM.copyWith(color: kWhite),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                // Container(
-                //   padding:
-                //       const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                //   child: Column(
-                //     mainAxisAlignment: MainAxisAlignment.start,
-                //     crossAxisAlignment: CrossAxisAlignment.stretch,
-                //     children: [
-                //       Text(
-                //         '$activeCategory',
-                //         style: kHeadTitleM.copyWith(color: kWhite),
-                //       ),
-                //       const SizedBox(
-                //         height: 15,
-                //       ),
-                //       liveCard(),
-                //     ],
-                //   ),
-                // ),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
@@ -180,13 +233,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Live Streams',
-                              style: kHeadTitleM.copyWith(color: kWhite),
-                            ),
-                            const SizedBox(
-                              height: 15,
-                            ),
                             ListView.builder(
                               physics: const NeverScrollableScrollPhysics(),
                               padding: const EdgeInsets.only(top: 10),
@@ -220,8 +266,8 @@ Widget categoryButton(String category, String activeCategory,
             margin: const EdgeInsets.only(right: 10),
             height: 5,
             width: 5,
-            decoration: const ShapeDecoration(
-                shape: CircleBorder(), color: kSecondaryColor),
+            decoration:
+                ShapeDecoration(shape: CircleBorder(), color: kSecondaryColor),
           ),
         ),
         Text(
@@ -237,8 +283,8 @@ Widget categoryButton(String category, String activeCategory,
 ///[Start new stream]
 _showStreamSheet(BuildContext context, void Function() streamcb) {
   // Initializations and Instances
+  FlutterSecureStorage storage = const FlutterSecureStorage();
   final ImagePicker picker = ImagePicker();
-  final GlobalKey<ScaffoldState> _modelScaffoldKey = GlobalKey<ScaffoldState>();
   TextEditingController streamNameController = TextEditingController();
   TextEditingController streamPasswordController = TextEditingController();
   File? thumbnail;
@@ -264,6 +310,7 @@ _showStreamSheet(BuildContext context, void Function() streamcb) {
 
           // Start Streaming
           Future<void> startStream() async {
+            String? token = await storage.read(key: "token");
             if (formkey.currentState!.validate()) {
               modalState(() {
                 isLoading = true;
@@ -280,6 +327,7 @@ _showStreamSheet(BuildContext context, void Function() streamcb) {
               multipart.headers.addAll({
                 'Content-Type': 'multipart/form-data',
                 'Accept': 'multipart/form-data',
+                'Authorization': 'Bearer $token',
               });
               multipart.fields["name"] = body["name"];
               if (isPrivate) {
@@ -293,8 +341,8 @@ _showStreamSheet(BuildContext context, void Function() streamcb) {
               http.Response response =
                   await http.Response.fromStream(await multipart.send());
               var jsonData = jsonDecode(response.body);
-              Stream stream = Stream.fromJson(jsonData["data"]);
               if (response.statusCode == 200) {
+                Stream stream = Stream?.fromJson(jsonData["data"]);
                 modalState(
                   () {
                     isLoading = false;
@@ -319,8 +367,6 @@ _showStreamSheet(BuildContext context, void Function() streamcb) {
           }
 
           return Container(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
             decoration: const BoxDecoration(
               color: kPrimaryColor,
               borderRadius: BorderRadius.only(

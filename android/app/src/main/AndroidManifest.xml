@@ -11,9 +11,9 @@ xmlns:tools="http://schemas.android.com/tools"
     
    <application
         android:usesCleartextTraffic="true"
-        android:label="${applicationName}"
+        android:label="Stream App"
         android:icon="@mipmap/ic_launcher"
-        tools:node="replace"
+        tools:replace="android:label" 
          >
         <activity
             android:name=".MainActivity"

@@ -11,7 +11,7 @@ Route<dynamic> generateRoute(RouteSettings? settings) {
     case 'Splash':
       return MaterialPageRoute(builder: (context) => const SplashScreen());
     case 'Login':
-      return MaterialPageRoute(builder: (context) => LoginScreen());
+      return MaterialPageRoute(builder: (context) => const LoginScreen());
     case 'Stream':
       Stream stream = settings?.arguments as Stream;
       return MaterialPageRoute(
@@ -21,7 +21,7 @@ Route<dynamic> generateRoute(RouteSettings? settings) {
       return MaterialPageRoute(
           builder: (context) => StreamPlayScreen(stream: stream));
     case 'Home':
-      return MaterialPageRoute(builder: (context) => HomeNavigation());
+      return MaterialPageRoute(builder: (context) => const HomeNavigation());
 
     default:
       return MaterialPageRoute(

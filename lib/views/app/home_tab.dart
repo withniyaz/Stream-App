@@ -5,7 +5,7 @@ import 'package:stream_app/views/app/home/home_screen.dart';
 import 'package:stream_app/views/app/profile/profile_screen.dart';
 
 class HomeNavigation extends StatefulWidget {
-  HomeNavigation({Key? key}) : super(key: key);
+  const HomeNavigation({Key? key}) : super(key: key);
 
   @override
   State<HomeNavigation> createState() => _HomeNavigationState();
@@ -18,7 +18,7 @@ class _HomeNavigationState extends State<HomeNavigation> {
     return Scaffold(
       body: IndexedStack(
         index: currentIndex,
-        children: [const HomeScreen(), ProfileScreen()],
+        children: const [HomeScreen(), ProfileScreen()],
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: kPrimaryColor,

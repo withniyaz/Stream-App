@@ -1,9 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:stream_app/constants/app_constants.dart';
 import 'package:stream_app/constants/color_constants.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:stream_app/constants/style_constants.dart';
 import 'package:stream_app/models/stream/stream_model.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
 class StreamPlayScreen extends StatefulWidget {
   final Stream stream;
@@ -13,6 +16,10 @@ class StreamPlayScreen extends StatefulWidget {
 }
 
 class _StreamPlayScreenState extends State<StreamPlayScreen> {
+  final io.Socket _socket = io.io(socketFullUrl, <String, dynamic>{
+    "transports": ["websocket"],
+    "autoConnect": true,
+  });
   late Stream stream;
   VlcPlayerController? _vlcViewController;
   @override
@@ -23,7 +30,30 @@ class _StreamPlayScreenState extends State<StreamPlayScreen> {
       autoPlay: true,
       options: VlcPlayerOptions(video: VlcVideoOptions([])),
     );
+    connectSocket();
     super.initState();
+  }
+
+  void connectSocket() {
+    _socket.connect();
+    _socket.onConnect(
+      (data) {
+        _socket.emit('join', '${stream.stream}');
+      },
+    );
+    _socket.onConnect(
+      (data) {
+        print('Socket Connected');
+      },
+    );
+    _socket.on('control', (data) {
+      setState(() {
+        stream = Stream.fromJson(data);
+      });
+    });
+    _socket.on('end', (data) {
+      print('@@@@@@@@@@ STREAM ENDED @@@@@@@@@@');
+    });
   }
 
   @override
@@ -31,6 +61,7 @@ class _StreamPlayScreenState extends State<StreamPlayScreen> {
     super.dispose();
     await _vlcViewController?.stopRendererScanning();
     await _vlcViewController?.dispose();
+    _socket.disconnect();
   }
 
   @override
@@ -50,10 +81,34 @@ class _StreamPlayScreenState extends State<StreamPlayScreen> {
               Positioned(
                 bottom: 15,
                 left: 15,
-                child: SvgPicture.asset(
-                  'assets/svg/livecircle.svg',
-                  height: 20,
-                  width: 50,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 5, horizontal: 6),
+                  decoration: BoxDecoration(
+                      color: kWhite, borderRadius: BorderRadius.circular(50)),
+                  child: Row(
+                    children: [
+                      SvgPicture.asset(
+                        stream.live == "live"
+                            ? 'assets/svg/livecircle.svg'
+                            : "assets/svg/pausecircle.svg",
+                        height: 20,
+                        width: 50,
+                      ),
+                      Visibility(
+                        visible: stream.streamPlayer?.mute == true,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: SvgPicture.asset(
+                            'assets/svg/interface/micmute.svg',
+                            height: 17,
+                            width: 17,
+                            color: kRedColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               Positioned(
@@ -97,21 +152,41 @@ class _StreamPlayScreenState extends State<StreamPlayScreen> {
                   height: 10,
                 ),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Edward Younds .',
-                      style: kSmallTitleR.copyWith(color: kWhite),
+                    CircleAvatar(
+                        backgroundImage: CachedNetworkImageProvider(
+                            '${stream.user?.profile?.profileImage}')),
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '  ${stream.user?.profile?.name}',
+                                style: kSmallTitleR.copyWith(color: kWhite),
+                              ),
+                              Text(
+                                '  ${stream.user?.profile?.email}',
+                                style: kSmallTitleR.copyWith(color: kWhite),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              SvgPicture.asset('assets/svg/watch.svg'),
+                              Text(
+                                '${stream.count} Watching',
+                                style: kSmallTitleR.copyWith(color: kWhite),
+                              )
+                            ],
+                          )
+                        ],
+                      ),
                     ),
-                    Row(
-                      children: [
-                        SvgPicture.asset('assets/svg/watch.svg'),
-                        Text(
-                          '20 Watching',
-                          style: kSmallTitleR.copyWith(color: kWhite),
-                        )
-                      ],
-                    )
                   ],
                 )
               ],

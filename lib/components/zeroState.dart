@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
@@ -10,9 +9,9 @@ Widget zerostate(
     head,
     sub,
     double size = 150,
-    double height = 560,
+    double height = 300,
     String type = "svg"}) {
-  return Container(
+  return SizedBox(
     height: height,
     child: Center(
         child: Column(
